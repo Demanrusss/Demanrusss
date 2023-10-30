@@ -1,6 +1,6 @@
 - 👋 Hi, I’m @Demanrusss
 - 👀 I’m interested in creating smth useful
-- 🌱 I’m currently learning C# and .NET
+- 🌱 I’m learning C# and .NET
 - 💞️ I’m looking for a collaboration on challenging project
 - 📫 How to reach me: just email me first
 - C/Chapter_7/ - Let's play a little bit with me in poker...
