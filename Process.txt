@@ -1,0 +1,1454 @@
+public class P_VtbFileMigration_Scripts : ProcessScriptBase<P_VtbFileMigration>
+{
+    // Fields
+    public const string VAL_DOC_PATH = @"C:\Users\s-P.Yegorov\Documents\ValDoc";
+    public Dictionary<string, string> filialsDict;
+    public Dictionary<string, string> contractorTypeDict;
+    public Dictionary<string, string> docTypeDict;
+    public Dictionary<string, string> docKindDict;
+    public VtbFileMigration_FileCat contextFileCat;
+    public string publicString;
+
+    // Methods
+    public P_VtbFileMigration_Scripts();
+    public bool CheckDate(string dateString);
+    private string ClientSQLFilter(string BIN);
+    public BinaryFile CreateBinaryFile(Stream stream, string fileName);
+    public virtual void CreateContractorCard(P_VtbFileMigration context);
+    public virtual void CreateContractorCardTest(P_VtbFileMigration context);
+    public virtual void FindClientCard(P_VtbFileMigration context);
+    public virtual void FindClientCardTest(P_VtbFileMigration context);
+    public virtual void FindClientCurrencyDocument(P_VtbFileMigration context);
+    public virtual void FindFolderTest(P_VtbFileMigration context);
+    public virtual void FindIndividualIBSOContractor(P_VtbFileMigration context);
+    public virtual void FindLegalIBSOContractor(P_VtbFileMigration context);
+    public virtual void InitProcess(P_VtbFileMigration context);
+    public virtual void PrepareBlockForEA(P_VtbFileMigration context);
+    public virtual void PrepareBlockOfFilesForUploadToElma(P_VtbFileMigration context);
+    public virtual void SaveAnsverFromEASubProcess(P_VtbFileMigration context);
+    public virtual void ScanValDocFolder(P_VtbFileMigration context);
+    public virtual void Test(P_VtbFileMigration context);
+    public virtual void test1(P_VtbFileMigration context);
+
+    // Nested Types
+    public class VtbFileMigration_ContractorBlock
+    {
+        // Methods
+        public VtbFileMigration_ContractorBlock();
+
+        // Properties
+        public string DirName { get; set; }
+        public string ContractorIIN { get; set; }
+        public string ContractorName { get; set; }
+        public string ContractorLegalType { get; set; }
+        public bool ContractorExistsELMA { get; set; }
+        public bool ContractorExistsIBSO { get; set; }
+        public bool ContractorValEAExistsELMA { get; set; }
+        public bool ContractorCreatedELMA { get; set; }
+        public string ErrorInfo { get; set; }
+        public bool FileUploadState { get; set; }
+        public List<P_VtbFileMigration_Scripts.VtbFileMigration_DocTypeGroup> DocTypeGroup { get; set; }
+    }
+
+    public class VtbFileMigration_ContractorTypeBlock
+    {
+        // Methods
+        public VtbFileMigration_ContractorTypeBlock();
+
+        // Properties
+        public string DirName { get; set; }
+        public string ContractorTypeElma { get; set; }
+        public string ErrorInfo { get; set; }
+        public List<P_VtbFileMigration_Scripts.VtbFileMigration_ContractorBlock> ContractorBlock { get; set; }
+    }
+
+    public class VtbFileMigration_DocTypeGroup
+    {
+        // Methods
+        public VtbFileMigration_DocTypeGroup();
+
+        // Properties
+        public string DirName { get; set; }
+        public string DocType { get; set; }
+        public string DocTypeElma { get; set; }
+        public string ErrorInfo { get; set; }
+        public List<P_VtbFileMigration_Scripts.VtbFileMigration_Files> Files { get; set; }
+        public List<P_VtbFileMigration_Scripts.VtbFileMigration_DocumentGroup> DocumentGroup { get; set; }
+    }
+
+    public class VtbFileMigration_DocumentGroup
+    {
+        // Methods
+        public VtbFileMigration_DocumentGroup();
+
+        // Properties
+        public string DirName { get; set; }
+        public string DocumentNumber { get; set; }
+        public string DocumentDate { get; set; }
+        public string ErrorInfo { get; set; }
+        public List<P_VtbFileMigration_Scripts.VtbFileMigration_DocumentKindGroup> DocumentKindGroup { get; set; }
+    }
+
+    public class VtbFileMigration_DocumentKindGroup
+    {
+        // Methods
+        public VtbFileMigration_DocumentKindGroup();
+
+        // Properties
+        public string DirName { get; set; }
+        public string DocKindELMA { get; set; }
+        public string ErrorInfo { get; set; }
+        public List<P_VtbFileMigration_Scripts.VtbFileMigration_Files> Files { get; set; }
+    }
+
+    public class VtbFileMigration_FileCat
+    {
+        // Methods
+        public VtbFileMigration_FileCat();
+
+        // Properties
+        public List<P_VtbFileMigration_Scripts.VtbFileMigration_FileCatBlock> FileCatBlock { get; set; }
+    }
+
+    public class VtbFileMigration_FileCatBlock
+    {
+        // Methods
+        public VtbFileMigration_FileCatBlock();
+
+        // Properties
+        public string DirName { get; set; }
+        public string Filial { get; set; }
+        public string FilialELMA { get; set; }
+        public string ErrorInfo { get; set; }
+        public List<P_VtbFileMigration_Scripts.VtbFileMigration_ContractorTypeBlock> ContractorTypeBlock { get; set; }
+    }
+
+    public class VtbFileMigration_Files
+    {
+        // Methods
+        public VtbFileMigration_Files();
+
+        // Properties
+        public string FileName { get; set; }
+        public string FilePath { get; set; }
+        public string ErrorInfo { get; set; }
+    }
+}
+
+public P_VtbFileMigration_Scripts()
+{
+    Dictionary<string, string> dictionary = new Dictionary<string, string> {
+        { 
+            "001 (A)_ДО АО Банк ВТБ (Каз-н)",
+            "ДО АО БАНК ВТБ (КАЗАХСТАН)"
+        },
+        { 
+            "004 (D)_Павлодар",
+            "Павлодар"
+        },
+        { 
+            "005 (E)_Караганда",
+            "Караганда"
+        },
+        { 
+            "006 (F)_Усть-Каменогорск",
+            "Усть-Каменогорск"
+        },
+        { 
+            "007 (G)_Атырау",
+            "Атырау"
+        },
+        { 
+            "010 (K)_Тараз",
+            "Тараз"
+        },
+        { 
+            "011 (L)_Шымкент",
+            "Шымкент"
+        },
+        { 
+            "012 (M)_Талдыкорган",
+            "Талдыкорган"
+        },
+        { 
+            "013 (N)_Костанай",
+            "Костанай"
+        },
+        { 
+            "014 (P)_Кокшетау",
+            "Кокшетау"
+        },
+        { 
+            "015 (R)_Уральск",
+            "Уральск"
+        },
+        { 
+            "016 (S)_Петропавловск",
+            "Петропавловск"
+        },
+        { 
+            "017 (T)_Кызылорда",
+            "Кызылорда"
+        },
+        { 
+            "018 (U)_Актау",
+            "Актау"
+        },
+        { 
+            "019 (B)_Алматы",
+            "Алматы"
+        },
+        { 
+            "020 (C)_Столичный (Астана)",
+            "Столичный"
+        },
+        { 
+            "021 (H)_Западный (Актобе)",
+            "Западный"
+        },
+        { 
+            "022 (J)_Восточный (Семей)",
+            "Восточный"
+        }
+    };
+    this.filialsDict = dictionary;
+    Dictionary<string, string> dictionary2 = new Dictionary<string, string> {
+        { 
+            "Клиенты",
+            "Клиенты"
+        },
+        { 
+            "Нерезиденты",
+            "Нерезиденты"
+        },
+        { 
+            "Физические лица",
+            "Физические лица"
+        }
+    };
+    this.contractorTypeDict = dictionary2;
+    Dictionary<string, string> dictionary3 = new Dictionary<string, string> {
+        { 
+            "УНК",
+            "UNVD"
+        },
+        { 
+            "Без УНК",
+            "NO_UNVD"
+        },
+        { 
+            "Письма",
+            "PISMA"
+        },
+        { 
+            "Разовые",
+            "RAZ"
+        },
+        { 
+            "Конвертация",
+            "KONV"
+        },
+        { 
+            "Прочие",
+            "OTHER"
+        }
+    };
+    this.docTypeDict = dictionary3;
+    Dictionary<string, string> dictionary4 = new Dictionary<string, string> {
+        { 
+            "Договор",
+            "DOG"
+        },
+        { 
+            "Документы по переводам",
+            "PAY"
+        },
+        { 
+            "Подтверждающие документы",
+            "GTD"
+        },
+        { 
+            "Письма",
+            "PISMA"
+        }
+    };
+    this.docKindDict = dictionary4;
+    this.contextFileCat = new VtbFileMigration_FileCat();
+    this.publicString = "Test Public string";
+}
+
+ 
+
+ 
+public P_VtbFileMigration_Scripts()
+{
+    Dictionary<string, string> dictionary = new Dictionary<string, string> {
+        { 
+            "001 (A)_ДО АО Банк ВТБ (Каз-н)",
+            "ДО АО БАНК ВТБ (КАЗАХСТАН)"
+        },
+        { 
+            "004 (D)_Павлодар",
+            "Павлодар"
+        },
+        { 
+            "005 (E)_Караганда",
+            "Караганда"
+        },
+        { 
+            "006 (F)_Усть-Каменогорск",
+            "Усть-Каменогорск"
+        },
+        { 
+            "007 (G)_Атырау",
+            "Атырау"
+        },
+        { 
+            "010 (K)_Тараз",
+            "Тараз"
+        },
+        { 
+            "011 (L)_Шымкент",
+            "Шымкент"
+        },
+        { 
+            "012 (M)_Талдыкорган",
+            "Талдыкорган"
+        },
+        { 
+            "013 (N)_Костанай",
+            "Костанай"
+        },
+        { 
+            "014 (P)_Кокшетау",
+            "Кокшетау"
+        },
+        { 
+            "015 (R)_Уральск",
+            "Уральск"
+        },
+        { 
+            "016 (S)_Петропавловск",
+            "Петропавловск"
+        },
+        { 
+            "017 (T)_Кызылорда",
+            "Кызылорда"
+        },
+        { 
+            "018 (U)_Актау",
+            "Актау"
+        },
+        { 
+            "019 (B)_Алматы",
+            "Алматы"
+        },
+        { 
+            "020 (C)_Столичный (Астана)",
+            "Столичный"
+        },
+        { 
+            "021 (H)_Западный (Актобе)",
+            "Западный"
+        },
+        { 
+            "022 (J)_Восточный (Семей)",
+            "Восточный"
+        }
+    };
+    this.filialsDict = dictionary;
+    Dictionary<string, string> dictionary2 = new Dictionary<string, string> {
+        { 
+            "Клиенты",
+            "Клиенты"
+        },
+        { 
+            "Нерезиденты",
+            "Нерезиденты"
+        },
+        { 
+            "Физические лица",
+            "Физические лица"
+        }
+    };
+    this.contractorTypeDict = dictionary2;
+    Dictionary<string, string> dictionary3 = new Dictionary<string, string> {
+        { 
+            "УНК",
+            "UNVD"
+        },
+        { 
+            "Без УНК",
+            "NO_UNVD"
+        },
+        { 
+            "Письма",
+            "PISMA"
+        },
+        { 
+            "Разовые",
+            "RAZ"
+        },
+        { 
+            "Конвертация",
+            "KONV"
+        },
+        { 
+            "Прочие",
+            "OTHER"
+        }
+    };
+    this.docTypeDict = dictionary3;
+    Dictionary<string, string> dictionary4 = new Dictionary<string, string> {
+        { 
+            "Договор",
+            "DOG"
+        },
+        { 
+            "Документы по переводам",
+            "PAY"
+        },
+        { 
+            "Подтверждающие документы",
+            "GTD"
+        },
+        { 
+            "Письма",
+            "PISMA"
+        }
+    };
+    this.docKindDict = dictionary4;
+    this.contextFileCat = new VtbFileMigration_FileCat();
+    this.publicString = "Test Public string";
+}
+
+public bool CheckDate(string dateString) => 
+    (!dateString.Any<char>(x => (!char.IsDigit(x) && (x != '.'))) && (dateString.Length == 10)) && DateTime.TryParse(dateString, out _);
+
+private string ClientSQLFilter(string BIN)
+{
+    StringBuilder builder = new StringBuilder();
+    builder.AppendFormat("BIN = '{0}' and (IsArchived is null or IsArchived = false) and IsDeleted = false", BIN);
+    return builder.ToString();
+}
+
+public BinaryFile CreateBinaryFile(Stream stream, string fileName)
+{
+    string path = BinaryFile.CreateContentFilePath(fileName);
+    using (FileStream stream2 = new FileStream(path, FileMode.CreateNew, FileAccess.Write))
+    {
+        stream.Seek(0L, SeekOrigin.Begin);
+        stream.CopyTo(stream2);
+    }
+    IMimeMappingService serviceNotNull = Locator.GetServiceNotNull<IMimeMappingService>();
+    BinaryFile file2 = new BinaryFile();
+    file2.set_ContentType(serviceNotNull.GetTypeByExtension(Path.GetExtension(fileName)));
+    file2.set_Name(Path.GetFileName(fileName));
+    file2.set_ContentFilePath(path);
+    file2.set_CreateDate(DateTime.Now);
+    BinaryFile file = file2;
+    DataAccessManager.get_FileManager().SaveFile(file);
+    return file;
+}
+
+ 
+
+ 
+public BinaryFile CreateBinaryFile(Stream stream, string fileName)
+{
+    string path = BinaryFile.CreateContentFilePath(fileName);
+    using (FileStream stream2 = new FileStream(path, FileMode.CreateNew, FileAccess.Write))
+    {
+        stream.Seek(0L, SeekOrigin.Begin);
+        stream.CopyTo(stream2);
+    }
+    IMimeMappingService serviceNotNull = Locator.GetServiceNotNull<IMimeMappingService>();
+    BinaryFile file2 = new BinaryFile();
+    file2.set_ContentType(serviceNotNull.GetTypeByExtension(Path.GetExtension(fileName)));
+    file2.set_Name(Path.GetFileName(fileName));
+    file2.set_ContentFilePath(path);
+    file2.set_CreateDate(DateTime.Now);
+    BinaryFile file = file2;
+    DataAccessManager.get_FileManager().SaveFile(file);
+    return file;
+}
+
+public virtual void CreateContractorCard(P_VtbFileMigration context)
+{
+}
+
+ 
+
+ 
+public virtual void CreateContractorCard(P_VtbFileMigration context)
+{
+}
+
+ 
+public virtual void CreateContractorCardTest(P_VtbFileMigration context)
+{
+    CA_BASGetContractor_Scripts scripts = new CA_BASGetContractor_Scripts();
+    scripts.Execute(context.get_IIN(), context.get_Iniciator());
+    if (scripts.Success)
+    {
+        ParameterExpression expression;
+        context.set_Contractor(scripts.Client);
+        ContractorLegal legal = PublicAPI.get_CRM().get_Contractor().get_ContractorLegal().Create();
+        legal.set_Name(context.get_Contractor().get_Name());
+        legal.set_INN(context.get_IIN());
+        legal.set_OpenCardInIbso(true);
+        legal.set_Responsible(context.get_Iniciator());
+        legal.set_CanEditRestrictedIbsoFields(true);
+        legal.set_HasAddressUSA(new bool?(context.get_Contractor().get_AddressUSA()));
+        legal.set_HasBirthPlaceUSA(new bool?(context.get_Contractor().get_BirthPlaceUSA()));
+        legal.set_HasCitizenshipUSA(new bool?(context.get_Contractor().get_CitizenshipUSA()));
+        legal.set_HasInstructionUSA(new bool?(context.get_Contractor().get_InstructionUSA()));
+        legal.set_HasMailUSA(new bool?(context.get_Contractor().get_MailUSA()));
+        legal.set_HasPhoneUSA(new bool?(context.get_Contractor().get_PhoneUSA()));
+        legal.set_HasPowerOfAttorneyUSA(new bool?(context.get_Contractor().get_PowerOfAttorneyUSA()));
+        legal.set_HasSelfSertificationUSA(new bool?(context.get_Contractor().get_SelfSertificationUSA()));
+        legal.set_HasTaxResidencyUSA(new bool?(context.get_Contractor().get_TaxResidencyUSA()));
+        legal.set_IsReleasedPersonUSA(new bool?(context.get_Contractor().get_ReleasedPersonUSA()));
+        legal.Save();
+        context.set_Info("Клиент найден в ИБСО");
+        if (EntityManager<ContractorLegal>.get_Instance().Find(Expression.Lambda<Func<ContractorLegal, bool>>(Expression.AndAlso(Expression.Equal(Expression.Property(expression = Expression.Parameter(typeof(ContractorLegal), "x"), (MethodInfo) methodof(Contractor.get_INN)), Expression.Property(Expression.Constant(context), (MethodInfo) methodof(P_VtbFileMigration.get_IIN)), false, (MethodInfo) methodof(string.op_Equality)), Expression.Not(Expression.Property(expression, (MethodInfo) methodof(Contractor.get_IsDeleted)))), new ParameterExpression[] { expression })).Count == 0)
+        {
+            context.set_Info(context.get_Info() + "; Клиент найден в ELMA");
+        }
+    }
+    else
+    {
+        context.set_Info("Клиент не найден в ИБСО");
+    }
+}
+
+ 
+
+ 
+public virtual void CreateContractorCardTest(P_VtbFileMigration context)
+{
+    CA_BASGetContractor_Scripts scripts = new CA_BASGetContractor_Scripts();
+    scripts.Execute(context.get_IIN(), context.get_Iniciator());
+    if (scripts.Success)
+    {
+        ParameterExpression expression;
+        context.set_Contractor(scripts.Client);
+        ContractorLegal legal = PublicAPI.get_CRM().get_Contractor().get_ContractorLegal().Create();
+        legal.set_Name(context.get_Contractor().get_Name());
+        legal.set_INN(context.get_IIN());
+        legal.set_OpenCardInIbso(true);
+        legal.set_Responsible(context.get_Iniciator());
+        legal.set_CanEditRestrictedIbsoFields(true);
+        legal.set_HasAddressUSA(new bool?(context.get_Contractor().get_AddressUSA()));
+        legal.set_HasBirthPlaceUSA(new bool?(context.get_Contractor().get_BirthPlaceUSA()));
+        legal.set_HasCitizenshipUSA(new bool?(context.get_Contractor().get_CitizenshipUSA()));
+        legal.set_HasInstructionUSA(new bool?(context.get_Contractor().get_InstructionUSA()));
+        legal.set_HasMailUSA(new bool?(context.get_Contractor().get_MailUSA()));
+        legal.set_HasPhoneUSA(new bool?(context.get_Contractor().get_PhoneUSA()));
+        legal.set_HasPowerOfAttorneyUSA(new bool?(context.get_Contractor().get_PowerOfAttorneyUSA()));
+        legal.set_HasSelfSertificationUSA(new bool?(context.get_Contractor().get_SelfSertificationUSA()));
+        legal.set_HasTaxResidencyUSA(new bool?(context.get_Contractor().get_TaxResidencyUSA()));
+        legal.set_IsReleasedPersonUSA(new bool?(context.get_Contractor().get_ReleasedPersonUSA()));
+        legal.Save();
+        context.set_Info("Клиент найден в ИБСО");
+        if (EntityManager<ContractorLegal>.get_Instance().Find(Expression.Lambda<Func<ContractorLegal, bool>>(Expression.AndAlso(Expression.Equal(Expression.Property(expression = Expression.Parameter(typeof(ContractorLegal), "x"), (MethodInfo) methodof(Contractor.get_INN)), Expression.Property(Expression.Constant(context), (MethodInfo) methodof(P_VtbFileMigration.get_IIN)), false, (MethodInfo) methodof(string.op_Equality)), Expression.Not(Expression.Property(expression, (MethodInfo) methodof(Contractor.get_IsDeleted)))), new ParameterExpression[] { expression })).Count == 0)
+        {
+            context.set_Info(context.get_Info() + "; Клиент найден в ELMA");
+        }
+    }
+    else
+    {
+        context.set_Info("Клиент не найден в ИБСО");
+    }
+}
+
+ 
+public virtual void FindClientCard(P_VtbFileMigration context)
+{
+    this.publicString = this.publicString + "FindClientCard";
+    context.set_Info(this.publicString);
+}
+
+ 
+
+ 
+public virtual void FindClientCard(P_VtbFileMigration context)
+{
+    this.publicString = this.publicString + "FindClientCard";
+    context.set_Info(this.publicString);
+}
+
+ 
+public virtual void FindClientCardTest(P_VtbFileMigration context)
+{
+    ParameterExpression expression;
+    ICollection<ContractorLegal> is2 = EntityManager<ContractorLegal>.get_Instance().Find(Expression.Lambda<Func<ContractorLegal, bool>>(Expression.AndAlso(Expression.Equal(Expression.Property(expression = Expression.Parameter(typeof(ContractorLegal), "x"), (MethodInfo) methodof(Contractor.get_INN)), Expression.Property(Expression.Constant(context), (MethodInfo) methodof(P_VtbFileMigration.get_IIN)), false, (MethodInfo) methodof(string.op_Equality)), Expression.Not(Expression.Property(expression, (MethodInfo) methodof(Contractor.get_IsDeleted)))), new ParameterExpression[] { expression }));
+    ICollection<ContractorIndividual> is3 = EntityManager<ContractorIndividual>.get_Instance().Find(Expression.Lambda<Func<ContractorIndividual, bool>>(Expression.AndAlso(Expression.Equal(Expression.Property(expression = Expression.Parameter(typeof(ContractorIndividual), "x"), (MethodInfo) methodof(Contractor.get_INN)), Expression.Property(Expression.Constant(context), (MethodInfo) methodof(P_VtbFileMigration.get_IIN)), false, (MethodInfo) methodof(string.op_Equality)), Expression.Not(Expression.Property(expression, (MethodInfo) methodof(Contractor.get_IsDeleted)))), new ParameterExpression[] { expression }));
+    if (is2.Count == 0)
+    {
+        context.set_Info(context.get_Info() + " Клиент ЮЛ не найден");
+    }
+    else
+    {
+        context.set_Info(context.get_Info() + " Клиент ЮЛ найден");
+    }
+    if (is3.Count == 0)
+    {
+        context.set_Info(context.get_Info() + " Клиент ФЛ не найден");
+    }
+    else
+    {
+        context.set_Info(context.get_Info() + " Клиент ФЛ найден");
+    }
+}
+
+ 
+
+ 
+public virtual void FindClientCardTest(P_VtbFileMigration context)
+{
+    ParameterExpression expression;
+    ICollection<ContractorLegal> is2 = EntityManager<ContractorLegal>.get_Instance().Find(Expression.Lambda<Func<ContractorLegal, bool>>(Expression.AndAlso(Expression.Equal(Expression.Property(expression = Expression.Parameter(typeof(ContractorLegal), "x"), (MethodInfo) methodof(Contractor.get_INN)), Expression.Property(Expression.Constant(context), (MethodInfo) methodof(P_VtbFileMigration.get_IIN)), false, (MethodInfo) methodof(string.op_Equality)), Expression.Not(Expression.Property(expression, (MethodInfo) methodof(Contractor.get_IsDeleted)))), new ParameterExpression[] { expression }));
+    ICollection<ContractorIndividual> is3 = EntityManager<ContractorIndividual>.get_Instance().Find(Expression.Lambda<Func<ContractorIndividual, bool>>(Expression.AndAlso(Expression.Equal(Expression.Property(expression = Expression.Parameter(typeof(ContractorIndividual), "x"), (MethodInfo) methodof(Contractor.get_INN)), Expression.Property(Expression.Constant(context), (MethodInfo) methodof(P_VtbFileMigration.get_IIN)), false, (MethodInfo) methodof(string.op_Equality)), Expression.Not(Expression.Property(expression, (MethodInfo) methodof(Contractor.get_IsDeleted)))), new ParameterExpression[] { expression }));
+    if (is2.Count == 0)
+    {
+        context.set_Info(context.get_Info() + " Клиент ЮЛ не найден");
+    }
+    else
+    {
+        context.set_Info(context.get_Info() + " Клиент ЮЛ найден");
+    }
+    if (is3.Count == 0)
+    {
+        context.set_Info(context.get_Info() + " Клиент ФЛ не найден");
+    }
+    else
+    {
+        context.set_Info(context.get_Info() + " Клиент ФЛ найден");
+    }
+}
+
+ 
+public virtual void FindClientCurrencyDocument(P_VtbFileMigration context)
+{
+    foreach (VtbFileMigration_FileCatBlock block in this.contextFileCat.FileCatBlock)
+    {
+        foreach (VtbFileMigration_ContractorTypeBlock block2 in block.ContractorTypeBlock)
+        {
+            foreach (VtbFileMigration_ContractorBlock block3 in block2.ContractorBlock)
+            {
+                if (block3.ContractorIIN.Length == 12)
+                {
+                    block3.ContractorCreatedELMA = true;
+                    string str = this.ClientSQLFilter(block3.ContractorIIN);
+                    if (EntityManager<VTBEACurrencyDocument>.get_Instance().Find(str).Count == 0)
+                    {
+                        block3.ContractorValEAExistsELMA = false;
+                    }
+                    else
+                    {
+                        block3.ContractorValEAExistsELMA = true;
+                    }
+                }
+            }
+        }
+    }
+}
+
+ 
+
+ 
+public virtual void FindClientCurrencyDocument(P_VtbFileMigration context)
+{
+    foreach (VtbFileMigration_FileCatBlock block in this.contextFileCat.FileCatBlock)
+    {
+        foreach (VtbFileMigration_ContractorTypeBlock block2 in block.ContractorTypeBlock)
+        {
+            foreach (VtbFileMigration_ContractorBlock block3 in block2.ContractorBlock)
+            {
+                if (block3.ContractorIIN.Length == 12)
+                {
+                    block3.ContractorCreatedELMA = true;
+                    string str = this.ClientSQLFilter(block3.ContractorIIN);
+                    if (EntityManager<VTBEACurrencyDocument>.get_Instance().Find(str).Count == 0)
+                    {
+                        block3.ContractorValEAExistsELMA = false;
+                    }
+                    else
+                    {
+                        block3.ContractorValEAExistsELMA = true;
+                    }
+                }
+            }
+        }
+    }
+}
+
+ 
+public virtual void FindFolderTest(P_VtbFileMigration context)
+{
+    string str = "УНВД";
+    string str2 = "2_649_0019_529";
+    Folder folder = PublicAPI.get_Docflow().get_Folder().Find(string.Format(" Name{1} ", str, $" like '{str2}%' ")).FirstOrDefault<Folder>();
+    if (folder != null)
+    {
+        context.set_Info("каталог найден: " + folder.get_Folder().ToString());
+    }
+    else
+    {
+        context.set_Info("каталог не найден");
+    }
+}
+
+ 
+
+ 
+public virtual void FindFolderTest(P_VtbFileMigration context)
+{
+    string str = "УНВД";
+    string str2 = "2_649_0019_529";
+    Folder folder = PublicAPI.get_Docflow().get_Folder().Find(string.Format(" Name{1} ", str, $" like '{str2}%' ")).FirstOrDefault<Folder>();
+    if (folder != null)
+    {
+        context.set_Info("каталог найден: " + folder.get_Folder().ToString());
+    }
+    else
+    {
+        context.set_Info("каталог не найден");
+    }
+}
+
+ 
+public virtual void FindIndividualIBSOContractor(P_VtbFileMigration context)
+{
+    VTB_ContractorIndividualData data = new VTB_ContractorIndividualData();
+    data.LoadClientIBSO(context.get_IIN(), context.get_Iniciator());
+    if (data.Success)
+    {
+        context.set_Contractor(data.ClientIndividual);
+    }
+}
+
+ 
+
+ 
+public virtual void FindIndividualIBSOContractor(P_VtbFileMigration context)
+{
+    VTB_ContractorIndividualData data = new VTB_ContractorIndividualData();
+    data.LoadClientIBSO(context.get_IIN(), context.get_Iniciator());
+    if (data.Success)
+    {
+        context.set_Contractor(data.ClientIndividual);
+    }
+}
+
+ 
+public virtual void FindLegalIBSOContractor(P_VtbFileMigration context)
+{
+    CA_BASGetContractor_Scripts scripts = new CA_BASGetContractor_Scripts();
+    scripts.Execute(context.get_IIN(), context.get_Iniciator());
+    if (scripts.Success)
+    {
+        context.set_Contractor(scripts.Client);
+    }
+}
+
+ 
+
+ 
+public virtual void FindLegalIBSOContractor(P_VtbFileMigration context)
+{
+    CA_BASGetContractor_Scripts scripts = new CA_BASGetContractor_Scripts();
+    scripts.Execute(context.get_IIN(), context.get_Iniciator());
+    if (scripts.Success)
+    {
+        context.set_Contractor(scripts.Client);
+    }
+}
+
+ 
+public virtual void InitProcess(P_VtbFileMigration context)
+{
+    this.contextFileCat.FileCatBlock = new List<VtbFileMigration_FileCatBlock>();
+    foreach (string str in Directory.GetDirectories($"{@"C:\Users\s-P.Yegorov\Documents\ValDoc"}"))
+    {
+        VtbFileMigration_FileCatBlock item = new VtbFileMigration_FileCatBlock {
+            DirName = str,
+            Filial = Path.GetFileName(str),
+            ContractorTypeBlock = new List<VtbFileMigration_ContractorTypeBlock>()
+        };
+        string str2 = string.Empty;
+        if (this.filialsDict.TryGetValue(item.Filial, out str2))
+        {
+            item.FilialELMA = str2;
+            foreach (string str3 in Directory.GetDirectories(item.DirName))
+            {
+                string fileName = Path.GetFileName(str3);
+                string str5 = string.Empty;
+                VtbFileMigration_ContractorTypeBlock block2 = new VtbFileMigration_ContractorTypeBlock {
+                    DirName = fileName,
+                    ContractorBlock = new List<VtbFileMigration_ContractorBlock>()
+                };
+                if (this.contractorTypeDict.TryGetValue(block2.DirName, out str5))
+                {
+                    block2.ContractorTypeElma = str5;
+                }
+                else
+                {
+                    block2.ErrorInfo = "Не найден тип клиента в ELMA";
+                }
+                if (block2.ErrorInfo == null)
+                {
+                    foreach (string str6 in Directory.GetDirectories($"{@"C:\Users\s-P.Yegorov\Documents\ValDoc"}\{item.Filial}\{fileName}"))
+                    {
+                        string str7 = Path.GetFileName(str6);
+                        VtbFileMigration_ContractorBlock block3 = new VtbFileMigration_ContractorBlock {
+                            DirName = str7,
+                            FileUploadState = false,
+                            DocTypeGroup = new List<VtbFileMigration_DocTypeGroup>()
+                        };
+                        string str8 = block3.DirName.Split(new char[] { '_' }).LastOrDefault<string>().Trim();
+                        if ((str8 != null) && (str8.Length == 12))
+                        {
+                            block3.ContractorIIN = str8;
+                        }
+                        else
+                        {
+                            block3.ErrorInfo = "Не определен ИИН/БИН для клиента";
+                        }
+                        if (block3.ErrorInfo == null)
+                        {
+                            foreach (string str9 in Directory.GetDirectories($"{str6}"))
+                            {
+                                string str10 = Path.GetFileName(str9);
+                                string str11 = string.Empty;
+                                VtbFileMigration_DocTypeGroup group = new VtbFileMigration_DocTypeGroup {
+                                    DirName = str10,
+                                    Files = new List<VtbFileMigration_Files>(),
+                                    DocumentGroup = new List<VtbFileMigration_DocumentGroup>()
+                                };
+                                if (this.docTypeDict.TryGetValue(group.DirName, out str11))
+                                {
+                                    group.DocTypeElma = str11;
+                                }
+                                else
+                                {
+                                    group.ErrorInfo = "Не найден тип документа в ELMA";
+                                }
+                                if (group.ErrorInfo == null)
+                                {
+                                    string str13;
+                                    VtbFileMigration_Files files;
+                                    if (!group.DocTypeElma.Equals("NO_UNVD") && !group.DocTypeElma.Equals("UNVD"))
+                                    {
+                                        foreach (string str12 in Directory.GetFiles($"{str9}"))
+                                        {
+                                            str13 = Path.GetFileName(str12);
+                                            files = new VtbFileMigration_Files {
+                                                FileName = str13,
+                                                FilePath = str12
+                                            };
+                                            group.Files.Add(files);
+                                        }
+                                    }
+                                    if (group.DocTypeElma.Equals("NO_UNVD") || group.DocTypeElma.Equals("UNVD"))
+                                    {
+                                        foreach (string str14 in Directory.GetDirectories($"{str9}"))
+                                        {
+                                            string str15 = Path.GetFileName(str14);
+                                            VtbFileMigration_DocumentGroup group2 = new VtbFileMigration_DocumentGroup {
+                                                DirName = str15,
+                                                DocumentKindGroup = new List<VtbFileMigration_DocumentKindGroup>()
+                                            };
+                                            string[] source = str15.Split(new string[] { " от ", " ОТ ", " От ", " оТ " }, StringSplitOptions.None);
+                                            if (!((!str11.Equals("NO_UNVD") || (source.Count<string>() < 2)) || this.CheckDate(source[1].Trim())))
+                                            {
+                                                group2.ErrorInfo = "Не определена дата для документа 'Без УНК'";
+                                            }
+                                            else
+                                            {
+                                                group2.DocumentNumber = source[0].Trim();
+                                                group2.DocumentDate = (!str11.Equals("UNVD") && (source.Count<string>() >= 2)) ? source[1].Trim() : null;
+                                            }
+                                            if (group2.ErrorInfo == null)
+                                            {
+                                                foreach (string str16 in Directory.GetDirectories($"{str14}"))
+                                                {
+                                                    string str17 = Path.GetFileName(str16);
+                                                    string str18 = string.Empty;
+                                                    VtbFileMigration_DocumentKindGroup group3 = new VtbFileMigration_DocumentKindGroup {
+                                                        DirName = str17,
+                                                        Files = new List<VtbFileMigration_Files>()
+                                                    };
+                                                    if (this.docKindDict.TryGetValue(group3.DirName, out str18))
+                                                    {
+                                                        group3.DocKindELMA = str18;
+                                                    }
+                                                    else
+                                                    {
+                                                        group3.ErrorInfo = "Не найден вид документа в ELMA";
+                                                    }
+                                                    if (group3.ErrorInfo == null)
+                                                    {
+                                                        foreach (string str12 in Directory.GetFiles($"{str16}"))
+                                                        {
+                                                            str13 = Path.GetFileName(str12);
+                                                            files = new VtbFileMigration_Files {
+                                                                FileName = str13,
+                                                                FilePath = str12
+                                                            };
+                                                            group3.Files.Add(files);
+                                                        }
+                                                    }
+                                                    group2.DocumentKindGroup.Add(group3);
+                                                }
+                                            }
+                                            group.DocumentGroup.Add(group2);
+                                        }
+                                    }
+                                }
+                                block3.DocTypeGroup.Add(group);
+                            }
+                        }
+                        block2.ContractorBlock.Add(block3);
+                    }
+                }
+                item.ContractorTypeBlock.Add(block2);
+            }
+        }
+        else
+        {
+            item.ErrorInfo = "Не найден соответствующий филиал в ELMA";
+        }
+        this.contextFileCat.FileCatBlock.Add(item);
+    }
+    this.publicString = this.publicString + "InitProcess";
+    context.set_Info(this.publicString);
+}
+
+ 
+
+ 
+public virtual void PrepareBlockForEA(P_VtbFileMigration context)
+{
+    P_VtbFileMigration_FilesForUploadToElma elma = (from x in context.get_FilesForUploadToElma()
+        where x.get_Completed() != true
+        select x).FirstOrDefault<P_VtbFileMigration_FilesForUploadToElma>();
+    context.set_ReqEA_Iniciator(elma.get_Iniciator());
+    context.set_ReqEA_IIN(elma.get_IIN());
+    context.set_ReqEA_ContractorLegalType(elma.get_ContractorLegalType());
+    foreach (P_VtbFileMigr_FFU_ValDocs docs in elma.get_ValDocs())
+    {
+        P_VtbFileMigration_ReqEADocs docs3 = new P_VtbFileMigration_ReqEADocs();
+        docs3.set_UNVDNumber(docs.get_UNVDNumber());
+        docs3.set_ContractNumber(docs.get_ContractNumber());
+        docs3.set_ContractDate(new DateTime?(Convert.ToDateTime(docs.get_ContractDate())));
+        docs3.set_DocType(docs.get_DocTypeGroup());
+        docs3.set_DocTypeItem(new DropDownItem(docs.get_DocTypeItem()));
+        P_VtbFileMigration_ReqEADocs docs2 = docs3;
+        foreach (P_VtbFileMigr_FFU_ValDocs_Files files in docs.get_Files())
+        {
+            using (FileStream stream = File.Open(files.get_FilePath(), FileMode.Open))
+            {
+                Attachment attachment = new Attachment();
+                attachment.set_File(this.CreateBinaryFile(stream, files.get_FileName()));
+                attachment.set_CreationAuthor(context.get_Iniciator());
+                docs2.get_Atts().Add(attachment);
+            }
+        }
+        context.get_ReqEADocs().Add(docs2);
+    }
+    elma.set_Completed(true);
+}
+
+ 
+
+ 
+public virtual void PrepareBlockForEA(P_VtbFileMigration context)
+{
+    P_VtbFileMigration_FilesForUploadToElma elma = (from x in context.get_FilesForUploadToElma()
+        where x.get_Completed() != true
+        select x).FirstOrDefault<P_VtbFileMigration_FilesForUploadToElma>();
+    context.set_ReqEA_Iniciator(elma.get_Iniciator());
+    context.set_ReqEA_IIN(elma.get_IIN());
+    context.set_ReqEA_ContractorLegalType(elma.get_ContractorLegalType());
+    foreach (P_VtbFileMigr_FFU_ValDocs docs in elma.get_ValDocs())
+    {
+        P_VtbFileMigration_ReqEADocs docs3 = new P_VtbFileMigration_ReqEADocs();
+        docs3.set_UNVDNumber(docs.get_UNVDNumber());
+        docs3.set_ContractNumber(docs.get_ContractNumber());
+        docs3.set_ContractDate(new DateTime?(Convert.ToDateTime(docs.get_ContractDate())));
+        docs3.set_DocType(docs.get_DocTypeGroup());
+        docs3.set_DocTypeItem(new DropDownItem(docs.get_DocTypeItem()));
+        P_VtbFileMigration_ReqEADocs docs2 = docs3;
+        foreach (P_VtbFileMigr_FFU_ValDocs_Files files in docs.get_Files())
+        {
+            using (FileStream stream = File.Open(files.get_FilePath(), FileMode.Open))
+            {
+                Attachment attachment = new Attachment();
+                attachment.set_File(this.CreateBinaryFile(stream, files.get_FileName()));
+                attachment.set_CreationAuthor(context.get_Iniciator());
+                docs2.get_Atts().Add(attachment);
+            }
+        }
+        context.get_ReqEADocs().Add(docs2);
+    }
+    elma.set_Completed(true);
+}
+
+ 
+public virtual void PrepareBlockOfFilesForUploadToElma(P_VtbFileMigration context)
+{
+    foreach (P_VtbFileMigration_FileCatBlock block in from x in context.get_FileCatBlock()
+        where x.get_ErrorInfo().Equals(string.Empty)
+        select x)
+    {
+        foreach (P_VtbFileMigration_FileCat_ContractorTypeBlock block2 in from x in block.get_ContractorTypeBlock()
+            where x.get_ErrorInfo().Equals(string.Empty)
+            select x)
+        {
+            foreach (P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock block3 in block2.get_ContractorBlock().Where<P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock>(delegate (P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock x) {
+                bool? nullablereturn x.get_ErrorInfo().Equals(string.Empty) && (!(nullable = x.get_FileUploadState()).GetValueOrDefault() && nullable.HasValue);
+            }))
+            {
+                P_VtbFileMigration_FilesForUploadToElma elma2 = new P_VtbFileMigration_FilesForUploadToElma();
+                elma2.set_Iniciator(context.get_Iniciator());
+                P_VtbFileMigration_FilesForUploadToElma elma = elma2;
+                elma.set_IIN(block3.get_ContractorIIN());
+                elma.set_ContractorLegalType(block3.get_ContractorLegalType());
+                foreach (P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup group in from x in block3.get_DocTypeGroup()
+                    where x.get_ErrorInfo().Equals(string.Empty)
+                    select x)
+                {
+                    string str;
+                    VTBCurrencyGroupDocument document;
+                    P_VtbFileMigr_FFU_ValDocs docs;
+                    P_VtbFileMigr_FFU_ValDocs_Files files2;
+                    if (!group.get_DocTypeElma().Equals("NO_UNVD") && !group.get_DocTypeElma().Equals("UNVD"))
+                    {
+                        str = $"{group.get_DocTypeElma()}";
+                        document = null;
+                        document = PublicAPI.get_Objects().get_UserObjects().get_UserVTBCurrencyGroupDocument().Find($"Code = '{str}'").FirstOrDefault<VTBCurrencyGroupDocument>();
+                        P_VtbFileMigr_FFU_ValDocs docs2 = new P_VtbFileMigr_FFU_ValDocs();
+                        docs2.set_DocTypeGroup(document);
+                        docs = docs2;
+                        foreach (P_VtbFileMigr_FC_DocTypeGroup_Files files in from x in group.get_Files()
+                            where x.get_ErrorInfo().Equals(string.Empty)
+                            select x)
+                        {
+                            P_VtbFileMigr_FFU_ValDocs_Files files3 = new P_VtbFileMigr_FFU_ValDocs_Files();
+                            files3.set_FileName(files.get_FileName());
+                            files3.set_FilePath(files.get_FilePath());
+                            files2 = files3;
+                            docs.get_Files().Add(files2);
+                        }
+                        if (docs.get_Files().Count > 0)
+                        {
+                            elma.get_ValDocs().Add(docs);
+                        }
+                    }
+                    if (group.get_DocTypeElma().Equals("NO_UNVD") || group.get_DocTypeElma().Equals("UNVD"))
+                    {
+                        foreach (P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup group2 in from x in group.get_DocumentGroup()
+                            where x.get_ErrorInfo().Equals(string.Empty)
+                            select x)
+                        {
+                            foreach (P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup_DocumentKindGroup group3 in from x in group2.get_DocumentKindGroup()
+                                where x.get_ErrorInfo().Equals(string.Empty)
+                                select x)
+                            {
+                                str = $"{group.get_DocTypeElma()}_{group3.get_DocKindELMA()}";
+                                document = null;
+                                document = PublicAPI.get_Objects().get_UserObjects().get_UserVTBCurrencyGroupDocument().Find($"Code = '{str}'").FirstOrDefault<VTBCurrencyGroupDocument>();
+                                P_VtbFileMigr_FFU_ValDocs docs3 = new P_VtbFileMigr_FFU_ValDocs();
+                                docs3.set_DocTypeGroup(document);
+                                docs3.set_DocTypeItem(group3.get_DocKindELMA());
+                                docs3.set_UNVDNumber(group2.get_DocumentNumber());
+                                docs3.set_ContractNumber(group2.get_DocumentNumber());
+                                docs3.set_ContractDate(group2.get_DocumentDate());
+                                docs = docs3;
+                                foreach (P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup_DocumentKindGroup_Files files4 in from x in group3.get_Files()
+                                    where x.get_ErrorInfo().Equals(string.Empty)
+                                    select x)
+                                {
+                                    P_VtbFileMigr_FFU_ValDocs_Files files5 = new P_VtbFileMigr_FFU_ValDocs_Files();
+                                    files5.set_FileName(files4.get_FileName());
+                                    files5.set_FilePath(files4.get_FilePath());
+                                    files2 = files5;
+                                    docs.get_Files().Add(files2);
+                                }
+                                if (docs.get_Files().Count > 0)
+                                {
+                                    elma.get_ValDocs().Add(docs);
+                                }
+                            }
+                        }
+                    }
+                }
+                context.get_FilesForUploadToElma().Add(elma);
+            }
+        }
+    }
+}
+
+ 
+
+ 
+public virtual void SaveAnsverFromEASubProcess(P_VtbFileMigration context)
+{
+}
+
+ 
+
+ 
+public virtual void SaveAnsverFromEASubProcess(P_VtbFileMigration context)
+{
+}
+
+ 
+public virtual void ScanValDocFolder(P_VtbFileMigration context)
+{
+    foreach (string str in Directory.GetDirectories($"{@"C:\Users\s-P.Yegorov\Documents\ValDoc"}"))
+    {
+        P_VtbFileMigration_FileCatBlock block6 = new P_VtbFileMigration_FileCatBlock();
+        block6.set_DirName(str);
+        block6.set_Filial(Path.GetFileName(str));
+        P_VtbFileMigration_FileCatBlock block = block6;
+        string str2 = string.Empty;
+        if (this.filialsDict.TryGetValue(block.get_Filial(), out str2))
+        {
+            block.set_FilialELMA(str2);
+            foreach (string str3 in Directory.GetDirectories(block.get_DirName()))
+            {
+                string fileName = Path.GetFileName(str3);
+                string str5 = string.Empty;
+                P_VtbFileMigration_FileCat_ContractorTypeBlock block5 = new P_VtbFileMigration_FileCat_ContractorTypeBlock();
+                block5.set_DirName(fileName);
+                P_VtbFileMigration_FileCat_ContractorTypeBlock block2 = block5;
+                if (this.contractorTypeDict.TryGetValue(block2.get_DirName(), out str5))
+                {
+                    block2.set_ContractorTypeElma(str5);
+                }
+                else
+                {
+                    block2.set_ErrorInfo("Не найден тип клиента в ELMA");
+                }
+                if (block2.get_ErrorInfo() == null)
+                {
+                    foreach (string str6 in Directory.GetDirectories($"{@"C:\Users\s-P.Yegorov\Documents\ValDoc"}\{block.get_Filial()}\{fileName}"))
+                    {
+                        string str7 = Path.GetFileName(str6);
+                        P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock block4 = new P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock();
+                        block4.set_DirName(str7);
+                        block4.set_FileUploadState(false);
+                        P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock block3 = block4;
+                        string str8 = block3.get_DirName().Split(new char[] { '_' }).LastOrDefault<string>().Trim();
+                        if ((str8 != null) && (str8.Length == 12))
+                        {
+                            block3.set_ContractorIIN(str8);
+                        }
+                        else
+                        {
+                            block3.set_ErrorInfo("Не определен ИИН/БИН для клиента");
+                        }
+                        if (block3.get_ErrorInfo() == null)
+                        {
+                            foreach (string str9 in Directory.GetDirectories($"{str6}"))
+                            {
+                                string str10 = Path.GetFileName(str9);
+                                string str11 = string.Empty;
+                                P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup group6 = new P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup();
+                                group6.set_DirName(str10);
+                                P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup group = group6;
+                                if (this.docTypeDict.TryGetValue(group.get_DirName(), out str11))
+                                {
+                                    group.set_DocTypeElma(str11);
+                                }
+                                else
+                                {
+                                    group.set_ErrorInfo("Не найден тип документа в ELMA");
+                                }
+                                if (group.get_ErrorInfo() == null)
+                                {
+                                    string str13;
+                                    if (!group.get_DocTypeElma().Equals("NO_UNVD") && !group.get_DocTypeElma().Equals("UNVD"))
+                                    {
+                                        foreach (string str12 in Directory.GetFiles($"{str9}"))
+                                        {
+                                            str13 = Path.GetFileName(str12);
+                                            P_VtbFileMigr_FC_DocTypeGroup_Files files2 = new P_VtbFileMigr_FC_DocTypeGroup_Files();
+                                            files2.set_FileName(str13);
+                                            files2.set_FilePath(str12);
+                                            P_VtbFileMigr_FC_DocTypeGroup_Files files = files2;
+                                            group.get_Files().Add(files);
+                                        }
+                                    }
+                                    if (group.get_DocTypeElma().Equals("NO_UNVD") || group.get_DocTypeElma().Equals("UNVD"))
+                                    {
+                                        foreach (string str14 in Directory.GetDirectories($"{str9}"))
+                                        {
+                                            string str15 = Path.GetFileName(str14);
+                                            P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup group5 = new P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup();
+                                            group5.set_DirName(str15);
+                                            P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup group2 = group5;
+                                            string[] source = str15.Split(new string[] { " от ", " ОТ ", " От ", " оТ " }, StringSplitOptions.None);
+                                            if (!((!str11.Equals("NO_UNVD") || (source.Count<string>() < 2)) || this.CheckDate(source[1].Trim())))
+                                            {
+                                                group2.set_ErrorInfo("Не определена дата для документа 'Без УНК'");
+                                            }
+                                            else
+                                            {
+                                                group2.set_DocumentNumber(source[0].Trim());
+                                                group2.set_DocumentDate((!str11.Equals("UNVD") && (source.Count<string>() >= 2)) ? source[1].Trim() : null);
+                                            }
+                                            if (group2.get_ErrorInfo() == null)
+                                            {
+                                                foreach (string str16 in Directory.GetDirectories($"{str14}"))
+                                                {
+                                                    string str17 = Path.GetFileName(str16);
+                                                    string str18 = string.Empty;
+                                                    P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup_DocumentKindGroup group4 = new P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup_DocumentKindGroup();
+                                                    group4.set_DirName(str17);
+                                                    P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup_DocumentKindGroup group3 = group4;
+                                                    if (this.docKindDict.TryGetValue(group3.get_DirName(), out str18))
+                                                    {
+                                                        group3.set_DocKindELMA(str18);
+                                                    }
+                                                    else
+                                                    {
+                                                        group3.set_ErrorInfo("Не найден вид документа в ELMA");
+                                                    }
+                                                    if (group3.get_ErrorInfo() == null)
+                                                    {
+                                                        foreach (string str12 in Directory.GetFiles($"{str16}"))
+                                                        {
+                                                            str13 = Path.GetFileName(str12);
+                                                            P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup_DocumentKindGroup_Files files4 = new P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup_DocumentKindGroup_Files();
+                                                            files4.set_FileName(str13);
+                                                            files4.set_FilePath(str12);
+                                                            P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup_DocumentKindGroup_Files files3 = files4;
+                                                            group3.get_Files().Add(files3);
+                                                        }
+                                                    }
+                                                    group2.get_DocumentKindGroup().Add(group3);
+                                                }
+                                            }
+                                            group.get_DocumentGroup().Add(group2);
+                                        }
+                                    }
+                                }
+                                block3.get_DocTypeGroup().Add(group);
+                            }
+                        }
+                        block2.get_ContractorBlock().Add(block3);
+                    }
+                }
+                block.get_ContractorTypeBlock().Add(block2);
+            }
+        }
+        else
+        {
+            block.set_ErrorInfo("Не найден соответствующий филиал в ELMA");
+        }
+        context.get_FileCatBlock().Add(block);
+    }
+}
+
+ 
+
+ 
+public virtual void ScanValDocFolder(P_VtbFileMigration context)
+{
+    foreach (string str in Directory.GetDirectories($"{@"C:\Users\s-P.Yegorov\Documents\ValDoc"}"))
+    {
+        P_VtbFileMigration_FileCatBlock block6 = new P_VtbFileMigration_FileCatBlock();
+        block6.set_DirName(str);
+        block6.set_Filial(Path.GetFileName(str));
+        P_VtbFileMigration_FileCatBlock block = block6;
+        string str2 = string.Empty;
+        if (this.filialsDict.TryGetValue(block.get_Filial(), out str2))
+        {
+            block.set_FilialELMA(str2);
+            foreach (string str3 in Directory.GetDirectories(block.get_DirName()))
+            {
+                string fileName = Path.GetFileName(str3);
+                string str5 = string.Empty;
+                P_VtbFileMigration_FileCat_ContractorTypeBlock block5 = new P_VtbFileMigration_FileCat_ContractorTypeBlock();
+                block5.set_DirName(fileName);
+                P_VtbFileMigration_FileCat_ContractorTypeBlock block2 = block5;
+                if (this.contractorTypeDict.TryGetValue(block2.get_DirName(), out str5))
+                {
+                    block2.set_ContractorTypeElma(str5);
+                }
+                else
+                {
+                    block2.set_ErrorInfo("Не найден тип клиента в ELMA");
+                }
+                if (block2.get_ErrorInfo() == null)
+                {
+                    foreach (string str6 in Directory.GetDirectories($"{@"C:\Users\s-P.Yegorov\Documents\ValDoc"}\{block.get_Filial()}\{fileName}"))
+                    {
+                        string str7 = Path.GetFileName(str6);
+                        P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock block4 = new P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock();
+                        block4.set_DirName(str7);
+                        block4.set_FileUploadState(false);
+                        P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock block3 = block4;
+                        string str8 = block3.get_DirName().Split(new char[] { '_' }).LastOrDefault<string>().Trim();
+                        if ((str8 != null) && (str8.Length == 12))
+                        {
+                            block3.set_ContractorIIN(str8);
+                        }
+                        else
+                        {
+                            block3.set_ErrorInfo("Не определен ИИН/БИН для клиента");
+                        }
+                        if (block3.get_ErrorInfo() == null)
+                        {
+                            foreach (string str9 in Directory.GetDirectories($"{str6}"))
+                            {
+                                string str10 = Path.GetFileName(str9);
+                                string str11 = string.Empty;
+                                P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup group6 = new P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup();
+                                group6.set_DirName(str10);
+                                P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup group = group6;
+                                if (this.docTypeDict.TryGetValue(group.get_DirName(), out str11))
+                                {
+                                    group.set_DocTypeElma(str11);
+                                }
+                                else
+                                {
+                                    group.set_ErrorInfo("Не найден тип документа в ELMA");
+                                }
+                                if (group.get_ErrorInfo() == null)
+                                {
+                                    string str13;
+                                    if (!group.get_DocTypeElma().Equals("NO_UNVD") && !group.get_DocTypeElma().Equals("UNVD"))
+                                    {
+                                        foreach (string str12 in Directory.GetFiles($"{str9}"))
+                                        {
+                                            str13 = Path.GetFileName(str12);
+                                            P_VtbFileMigr_FC_DocTypeGroup_Files files2 = new P_VtbFileMigr_FC_DocTypeGroup_Files();
+                                            files2.set_FileName(str13);
+                                            files2.set_FilePath(str12);
+                                            P_VtbFileMigr_FC_DocTypeGroup_Files files = files2;
+                                            group.get_Files().Add(files);
+                                        }
+                                    }
+                                    if (group.get_DocTypeElma().Equals("NO_UNVD") || group.get_DocTypeElma().Equals("UNVD"))
+                                    {
+                                        foreach (string str14 in Directory.GetDirectories($"{str9}"))
+                                        {
+                                            string str15 = Path.GetFileName(str14);
+                                            P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup group5 = new P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup();
+                                            group5.set_DirName(str15);
+                                            P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup group2 = group5;
+                                            string[] source = str15.Split(new string[] { " от ", " ОТ ", " От ", " оТ " }, StringSplitOptions.None);
+                                            if (!((!str11.Equals("NO_UNVD") || (source.Count<string>() < 2)) || this.CheckDate(source[1].Trim())))
+                                            {
+                                                group2.set_ErrorInfo("Не определена дата для документа 'Без УНК'");
+                                            }
+                                            else
+                                            {
+                                                group2.set_DocumentNumber(source[0].Trim());
+                                                group2.set_DocumentDate((!str11.Equals("UNVD") && (source.Count<string>() >= 2)) ? source[1].Trim() : null);
+                                            }
+                                            if (group2.get_ErrorInfo() == null)
+                                            {
+                                                foreach (string str16 in Directory.GetDirectories($"{str14}"))
+                                                {
+                                                    string str17 = Path.GetFileName(str16);
+                                                    string str18 = string.Empty;
+                                                    P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup_DocumentKindGroup group4 = new P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup_DocumentKindGroup();
+                                                    group4.set_DirName(str17);
+                                                    P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup_DocumentKindGroup group3 = group4;
+                                                    if (this.docKindDict.TryGetValue(group3.get_DirName(), out str18))
+                                                    {
+                                                        group3.set_DocKindELMA(str18);
+                                                    }
+                                                    else
+                                                    {
+                                                        group3.set_ErrorInfo("Не найден вид документа в ELMA");
+                                                    }
+                                                    if (group3.get_ErrorInfo() == null)
+                                                    {
+                                                        foreach (string str12 in Directory.GetFiles($"{str16}"))
+                                                        {
+                                                            str13 = Path.GetFileName(str12);
+                                                            P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup_DocumentKindGroup_Files files4 = new P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup_DocumentKindGroup_Files();
+                                                            files4.set_FileName(str13);
+                                                            files4.set_FilePath(str12);
+                                                            P_VtbFileMigration_FileCat_ContractorTypeBlock_ContractorBlock_DocTypeGroup_DocumentGroup_DocumentKindGroup_Files files3 = files4;
+                                                            group3.get_Files().Add(files3);
+                                                        }
+                                                    }
+                                                    group2.get_DocumentKindGroup().Add(group3);
+                                                }
+                                            }
+                                            group.get_DocumentGroup().Add(group2);
+                                        }
+                                    }
+                                }
+                                block3.get_DocTypeGroup().Add(group);
+                            }
+                        }
+                        block2.get_ContractorBlock().Add(block3);
+                    }
+                }
+                block.get_ContractorTypeBlock().Add(block2);
+            }
+        }
+        else
+        {
+            block.set_ErrorInfo("Не найден соответствующий филиал в ELMA");
+        }
+        context.get_FileCatBlock().Add(block);
+    }
+}
+
+ 
+public virtual void Test(P_VtbFileMigration context)
+{
+    string str = this.ClientSQLFilter(context.get_IIN());
+    context.set_Info(str);
+    context.set_Info(context.get_Info() + EntityManager<VTBEACurrencyDocument>.get_Instance().Count().ToString());
+    if (EntityManager<VTBEACurrencyDocument>.get_Instance().Find(str).Count == 0)
+    {
+        context.set_Info(context.get_Info() + " Валютый ЭА клиента не найден");
+    }
+    else
+    {
+        context.set_Info(context.get_Info() + " Валютый ЭА клиента найден");
+    }
+}
+
+ 
+
+ 
+public virtual void Test(P_VtbFileMigration context)
+{
+    string str = this.ClientSQLFilter(context.get_IIN());
+    context.set_Info(str);
+    context.set_Info(context.get_Info() + EntityManager<VTBEACurrencyDocument>.get_Instance().Count().ToString());
+    if (EntityManager<VTBEACurrencyDocument>.get_Instance().Find(str).Count == 0)
+    {
+        context.set_Info(context.get_Info() + " Валютый ЭА клиента не найден");
+    }
+    else
+    {
+        context.set_Info(context.get_Info() + " Валютый ЭА клиента найден");
+    }
+}
+
+ 
+public virtual void test1(P_VtbFileMigration context)
+{
+    context.set_IIN("---->>>" + this.contextFileCat.FileCatBlock.FirstOrDefault<VtbFileMigration_FileCatBlock>().DirName);
+}
+
+ 
+
+ 
+public virtual void test1(P_VtbFileMigration context)
+{
+    context.set_IIN("---->>>" + this.contextFileCat.FileCatBlock.FirstOrDefault<VtbFileMigration_FileCatBlock>().DirName);
+}
